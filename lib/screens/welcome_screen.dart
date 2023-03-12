@@ -15,9 +15,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
+          children: [
             Row(
-              children: <Widget>[
+              children: [
                 Container(
                   child: Image.asset('images/logo.png'),
                   height: 60.0,
@@ -25,7 +25,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 Text(
                   'Flash Chat',
                   style: TextStyle(
-                    fontSize: 45.0,
+                    color: Colors.blueGrey,
+                    fontSize: 40.0,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
