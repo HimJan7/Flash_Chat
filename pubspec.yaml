@@ -39,6 +39,8 @@ dependencies:
   firebase_auth: ^4.2.10
   cloud_firestore: ^4.4.4
   modal_progress_hud_nsn: ^0.3.0
+  image_picker: ^0.8.7
+  firebase_storage: ^11.0.16
 
 dev_dependencies:
   flutter_test:

@@ -1,10 +1,12 @@
 import 'dart:math';
-
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flash_chat/constants.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
 
 final _fireStore = FirebaseFirestore.instance;
 User? loggedInUser;
@@ -19,7 +21,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _auth = FirebaseAuth.instance;
   final messageController = TextEditingController();
   String? messageText;
-
+  String imageUrl = '';
   @override
   void initState() {
     super.initState();
@@ -36,6 +38,45 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (e) {
       print(e);
     }
+  }
+
+  void selectFile() async {
+    XFile? file = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (file != null) {
+      print('name of file' + file.name);
+      uploadFile(file);
+    } else {
+      imageUrl = '';
+    }
+  }
+
+  void uploadFile(XFile? newFile) async {
+    try {
+      firebase_storage.UploadTask uploadingTask;
+      firebase_storage.Reference ref = firebase_storage.FirebaseStorage.instance
+          .ref()
+          .child('product')
+          .child('/' + newFile!.name);
+
+      uploadingTask = ref.putFile(File(newFile.path));
+
+      await uploadingTask.whenComplete(() => null);
+      String uploadedUrl = await ref.getDownloadURL();
+      print('image url' + uploadedUrl);
+      _fireStore.collection('messages').add({
+        'text': '',
+        'sender': loggedInUser!.email,
+        'date': DateTime.now().toIso8601String().toString(),
+        'url': uploadedUrl,
+      });
+    } catch (e) {
+      print(e);
+      imageUrl = '';
+    }
+  }
+
+  void clearUrl() {
+    imageUrl = '';
   }
 
   @override
@@ -65,6 +106,23 @@ class _ChatScreenState extends State<ChatScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  GestureDetector(
+                    onTap: () {
+                      selectFile();
+                    },
+                    child: Container(
+                        child: Row(
+                      children: [
+                        SizedBox(
+                          width: 5,
+                        ),
+                        Icon(Icons.image),
+                        SizedBox(
+                          width: 5,
+                        ),
+                      ],
+                    )),
+                  ),
                   Expanded(
                     child: TextField(
                       controller: messageController,
@@ -77,11 +135,14 @@ class _ChatScreenState extends State<ChatScreen> {
                   ElevatedButton(
                     onPressed: () {
                       messageController.clear();
-                      _fireStore.collection('messages').add({
-                        'text': messageText,
-                        'sender': loggedInUser!.email,
-                        'date': DateTime.now().toIso8601String().toString(),
-                      });
+                      if (messageText != null) {
+                        _fireStore.collection('messages').add({
+                          'text': messageText,
+                          'sender': loggedInUser!.email,
+                          'date': DateTime.now().toIso8601String().toString(),
+                          'url': '',
+                        });
+                      }
                     },
                     child: Text(
                       'Send',
@@ -113,7 +174,7 @@ class messageStream extends StatelessWidget {
           for (var message in messages) {
             final messageText = message.get('text');
             final messagesender = message.get('sender');
-
+            final ImageUrl = message.get('url');
             final currentuser = loggedInUser?.email;
 
             messageBubbles.add(
@@ -121,6 +182,7 @@ class messageStream extends StatelessWidget {
                 text: messageText,
                 sender: messagesender,
                 self: currentuser == messagesender,
+                url: ImageUrl,
               ),
             );
           }
@@ -140,12 +202,12 @@ class messageStream extends StatelessWidget {
 }
 
 class messageBubble extends StatelessWidget {
-  messageBubble({this.text, this.sender, this.self = true});
+  messageBubble({this.text, this.sender, this.self = true, required this.url});
 
   String? sender;
   String? text;
   bool self = true;
-
+  String url;
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -158,27 +220,34 @@ class messageBubble extends StatelessWidget {
             '$sender',
             style: TextStyle(fontSize: 12, color: Colors.black54),
           ),
-          Material(
-            borderRadius: self
-                ? BorderRadius.only(
-                    topLeft: Radius.circular(30),
-                    bottomLeft: Radius.circular(30),
-                    bottomRight: Radius.circular(30))
-                : BorderRadius.only(
-                    topRight: Radius.circular(30),
-                    bottomLeft: Radius.circular(30),
-                    bottomRight: Radius.circular(30)),
-            elevation: 5,
-            color: self ? Colors.lightBlueAccent : Colors.white,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-              child: Text(
-                '$text',
-                style: TextStyle(
-                    fontSize: 15, color: self ? Colors.white : Colors.black54),
-              ),
-            ),
-          ),
+          url != ''
+              ? Container(
+                  width: 200,
+                  child: Image.network(url),
+                )
+              : Material(
+                  borderRadius: self
+                      ? BorderRadius.only(
+                          topLeft: Radius.circular(30),
+                          bottomLeft: Radius.circular(30),
+                          bottomRight: Radius.circular(30))
+                      : BorderRadius.only(
+                          topRight: Radius.circular(30),
+                          bottomLeft: Radius.circular(30),
+                          bottomRight: Radius.circular(30)),
+                  elevation: 5,
+                  color: self ? Colors.lightBlueAccent : Colors.white,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 10, horizontal: 20),
+                    child: Text(
+                      '$text',
+                      style: TextStyle(
+                          fontSize: 15,
+                          color: self ? Colors.white : Colors.black54),
+                    ),
+                  ),
+                ),
         ],
       ),
     );

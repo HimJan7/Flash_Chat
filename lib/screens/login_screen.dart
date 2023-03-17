@@ -13,8 +13,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  String email = '';
-  String password = '';
+  String email = 'user1@gmail.com';
+  String password = 'qwerty';
   bool showSpinner = false;
   @override
   Widget build(BuildContext context) {
