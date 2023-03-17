@@ -7,9 +7,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
+import 'package:flash_chat/screens/data_type.dart';
 
-final _fireStore = FirebaseFirestore.instance;
 User? loggedInUser;
+final _fireStore = FirebaseFirestore.instance;
 
 class ChatScreen extends StatefulWidget {
   static const id = 'Chat_Screen';
@@ -22,6 +23,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final messageController = TextEditingController();
   String? messageText;
   String imageUrl = '';
+
   @override
   void initState() {
     super.initState();
@@ -38,45 +40,6 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (e) {
       print(e);
     }
-  }
-
-  void selectFile() async {
-    XFile? file = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (file != null) {
-      print('name of file' + file.name);
-      uploadFile(file);
-    } else {
-      imageUrl = '';
-    }
-  }
-
-  void uploadFile(XFile? newFile) async {
-    try {
-      firebase_storage.UploadTask uploadingTask;
-      firebase_storage.Reference ref = firebase_storage.FirebaseStorage.instance
-          .ref()
-          .child('product')
-          .child('/' + newFile!.name);
-
-      uploadingTask = ref.putFile(File(newFile.path));
-
-      await uploadingTask.whenComplete(() => null);
-      String uploadedUrl = await ref.getDownloadURL();
-      print('image url' + uploadedUrl);
-      _fireStore.collection('messages').add({
-        'text': '',
-        'sender': loggedInUser!.email,
-        'date': DateTime.now().toIso8601String().toString(),
-        'url': uploadedUrl,
-      });
-    } catch (e) {
-      print(e);
-      imageUrl = '';
-    }
-  }
-
-  void clearUrl() {
-    imageUrl = '';
   }
 
   @override
@@ -107,8 +70,12 @@ class _ChatScreenState extends State<ChatScreen> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   GestureDetector(
-                    onTap: () {
-                      selectFile();
+                    onTap: () async {
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (context) => DataType(),
+                      );
+                      //  Navigator.pop(context);
                     },
                     child: Container(
                         child: Row(
